@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.cache/
+.vscode/
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.DS_Store
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

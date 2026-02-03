@@ -1,0 +1,22 @@
+{
+  "name": "site_provenis_venda",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "web:dev": "npm --workspace apps/web run dev",
+    "web:build": "npm --workspace apps/web run build",
+    "web:preview": "npm --workspace apps/web run preview",
+
+    "api:dev": "npm --workspace apps/api run dev",
+    "api:build": "npm --workspace apps/api run build",
+    "api:start": "npm --workspace apps/api run start",
+
+    "api:db:seed": "npm --workspace apps/api run db:seed",
+    "db:seed": "npm --workspace apps/api run db:seed",
+
+    "pg:up": "docker compose -f infra/postgres/docker-compose.yml up -d",
+    "pg:down": "docker compose -f infra/postgres/docker-compose.yml down"
+  }
+}
