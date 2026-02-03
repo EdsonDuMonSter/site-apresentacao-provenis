@@ -24,6 +24,12 @@ export class ContactRepository {
     await client.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdent(tenantSchema)}`);
     await this.setSchema(clientKey, client);
 
+    const tableExists = await client.query<{ exists: boolean }>(
+      `SELECT to_regclass($1) IS NOT NULL as exists`,
+      [`${tenantSchema}.contact_messages`]
+    );
+    if (tableExists.rows[0]?.exists) return;
+
     const sql = `
         CREATE TABLE IF NOT EXISTS contact_messages (
           id BIGSERIAL PRIMARY KEY,

@@ -31,4 +31,4 @@ EXPOSE 3000
 WORKDIR /app/apps/api
 
 # Init schemas (projects) then start server
-CMD ["sh", "-c", "node dist/modules/projects/init-db.js && node dist/main.js"]
+CMD ["node", "dist/main.js"]

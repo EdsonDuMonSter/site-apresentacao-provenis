@@ -1,32 +1,19 @@
 services:
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: Provenis_system
-    volumes:
-      - provenis_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d Provenis_system"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     restart: unless-stopped
+    networks:
+      - default
+      - provenis_db
     environment:
       PORT: 3000
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/Provenis_system
+      # Por padrão, usa o Postgres CENTRAL (container `postgres16`) via rede Docker externa.
+      # Defina `DATABASE_URL` no `.env` para apontar para sua instância central.
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:${CENTRAL_POSTGRES_PASSWORD:-postgres}@postgres16:5432/Provenis_system}
       TENANT_HEADER: X-Client-Key
       DEFAULT_CLIENT_KEY: ${DEFAULT_CLIENT_KEY:-site_provenis_vendas}
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   web:
     build:
@@ -41,5 +28,7 @@ services:
     depends_on:
       - api
 
-volumes:
-  provenis_pgdata:
+networks:
+  provenis_db:
+    external: true
+    name: postgresql_provenis_default

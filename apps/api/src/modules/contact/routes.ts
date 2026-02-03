@@ -41,11 +41,11 @@ export function createContactRouter(pool: Pool): Router {
 
       const name = (req.body?.name ?? '') as unknown;
       const email = (req.body?.email ?? '') as unknown;
-      const contactMethod = (req.body?.contact_method ?? '') as unknown;
+      const contactMethod = (req.body?.contact_method ?? req.body?.method ?? '') as unknown;
       const phoneRaw = (req.body?.phone ?? null) as unknown;
       const discordRaw = (req.body?.discord ?? null) as unknown;
       const message = (req.body?.message ?? '') as unknown;
-      const pageUrl = (req.body?.page_url ?? null) as unknown;
+      const pageUrl = (req.body?.page_url ?? req.body?.pageUrl ?? null) as unknown;
 
       if (!isNonEmptyString(name)) {
         return res.status(400).json({ ok: false, error: 'validation_error', message: 'Informe seu nome.' });
