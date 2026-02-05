@@ -363,3 +363,116 @@ Peça para a outra IA fazer:
 - O módulo `projects` tem `initSchema()` que cria tabelas/índices/triggers; em produção pode ser usado apenas no primeiro setup.
 - O módulo `contact` cria a tabela `contact_messages` sob demanda e evita DDL se a tabela já existir (para compatibilidade com banco central onde o owner pode ser outro).
 - Para manter consistência do tenant com pool, prefira sempre o padrão `withTenant()`.
+
+---
+
+## 12) PROMPT ÚNICO (cole em outra IA)
+
+Copie e cole o bloco abaixo em outra IA para ela recriar o projeto **igual** (mesmo layout/cores, mesma organização, mesma API, mesmo banco multi-tenant):
+
+```text
+Você é um engenheiro full-stack sênior. Crie do zero um monorepo Node + TypeScript com 2 apps: WEB (Vite multipage) e API (Express + pg). O resultado precisa ser equivalente a um site premium preto/dourado com as páginas Home e Trabalhos, consumindo API e gravando contato no Postgres. Siga rigorosamente os requisitos abaixo.
+
+REQUISITOS OBRIGATÓRIOS
+1) Organização do repo
+   - Raiz:
+     - apps/web
+     - apps/api
+     - docs
+     - Dockerfile.web, Dockerfile.api
+     - docker-compose.prod.yml e docker-compose.prod.ghcr.yml
+     - .github/workflows/docker-publish-ghcr.yml
+   - WEB (Vite): root deve ser apps/web/src
+     - apps/web/src/index.html (redirect para /pages/home/index.html)
+     - apps/web/src/pages/home/{index.html,style.css,main.ts}
+     - apps/web/src/pages/trabalhos/{index.html,style.css,main.ts}
+     - apps/web/src/pages/about/{index.html,style.css,main.ts} (simples)
+     - apps/web/src/lib/api.ts (wrapper fetch + tipos)
+     - apps/web/src/public/assets/brand/provenis-logo.png e provenis-logo.svg
+     - apps/web/nginx.conf (proxy /api/ para api:3000; root / serve /pages/home/index.html)
+   - API (Express):
+     - apps/api/src/main.ts, app.ts
+     - apps/api/src/infra/db/pool.ts, infra/db/tenant.ts, infra/http/tenant.ts
+     - apps/api/src/modules/projects, modules/contact, modules/settings
+
+2) Identidade visual / Layout
+   - Tipografia: Inter (sans) + Instrument Serif (serif) via Google Fonts.
+   - Paleta (CSS variables em :root):
+     --black #0a0a0a
+     --black-light #1a1a1a
+     --gold #d4af37
+     --gold-light #f4d576
+     --gold-dark #b8960f
+     --white #ffffff
+     --gray #6b7280
+     --gray-light #9ca3af
+     --border rgba(212,175,55,0.15)
+   - Overlay grain: div .grain fixa com data-uri SVG + animação (8s steps).
+   - Header fixo com blur (backdrop-filter), links e ícones WhatsApp/Discord.
+   - Logo: usar <img class="logo-mark" src="/assets/brand/provenis-logo.png" ... onerror fallback svg> + texto visível "PROVENIS".
+   - Favicon: link png 32x32 + svg + apple-touch-icon.
+
+3) WEB — comportamento
+   - Home: landing premium com seções modernas, CTA e formulário de contato.
+   - Form de contato deve ter toggle WhatsApp/Discord e enviar via fetch para POST /api/contact.
+     - Body: name, email, contact_method (ou method legado), phone (whatsapp), discord (discord), message, page_url (ou pageUrl legado).
+   - Trabalhos: grid de projetos (dinâmico), filtros (categoria + featured opcional) e modal de detalhes.
+   - API wrapper em apps/web/src/lib/api.ts:
+     - baseURL: se VITE_API_URL for 'same-origin', usar '' e chamar /api/... (proxy Nginx)
+     - sempre enviar header: X-Client-Key = VITE_CLIENT_KEY (default site_provenis_vendas)
+
+4) API — multi-tenant por schema
+   - Tenant via header configurável TENANT_HEADER (default X-Client-Key).
+   - Schema = c_<client_key> com sanitização: lowercase e troca de [^a-z0-9_] por '_'.
+   - Obrigatório: nunca usar SET search_path fora de transação com pool.
+   - Implementar helper withTenant():
+     - BEGIN
+     - SET LOCAL search_path TO "c_<client>", public (e também schemas extras se EXTRA_SEARCH_PATH_SCHEMAS existir)
+     - executar queries
+     - COMMIT / ROLLBACK
+
+5) API — endpoints
+   - GET /health -> {status:'ok'}
+   - Projects
+     - GET /api/projects/categories
+     - GET /api/projects?category=<slug>&featured=true|false
+     - GET /api/projects/:slug
+     - POST /api/projects/init-schema (dev)
+   - Contact
+     - POST /api/contact
+       - valida email e campos
+       - salva em contact_messages no schema do tenant
+   - Settings
+     - GET /settings/:key
+     - PUT /settings/:key
+     - tabela app_settings (key/value)
+
+6) Banco (Postgres) — tabelas por tenant (dentro de c_<client>)
+   - categories, projects, project_images, project_stats conforme estrutura do blueprint.
+   - contact_messages conforme estrutura do blueprint + constraints whatsapp/discord.
+   - app_settings conforme estrutura do blueprint.
+
+7) Produção Docker
+   - docker-compose.prod.yml com serviços:
+     - api (PORT=3000) com DATABASE_URL apontando para Postgres central
+     - web (nginx) exposto em 127.0.0.1:8080:80
+     - web faz proxy /api/ para api:3000
+     - api entra também numa rede externa do Postgres (name: postgresql_provenis_default)
+   - Dockerfile.web: build Vite e copiar dist para Nginx.
+   - Dockerfile.api: build TS e rodar node dist/main.js.
+
+8) CI/CD (opcional)
+   - Workflow GHCR que builda e publica imagens -api e -web em push na main.
+   - docker-compose.prod.ghcr.yml com override para usar imagens do GHCR.
+
+ENTREGÁVEIS
+1) Estrutura completa de pastas + arquivos essenciais.
+2) Código funcional (web e api) seguindo os requisitos.
+3) Scripts npm (dev/build) para ambos.
+4) SQL/DDL idempotente e/ou init de schema para projects/contact/settings.
+5) Instruções de execução local e produção.
+
+ME PERGUNTE ANTES (mínimo necessário)
+- Qual será o DEFAULT_CLIENT_KEY (ex.: site_provenis_vendas)?
+- Qual o DATABASE_URL do Postgres central?
+```
